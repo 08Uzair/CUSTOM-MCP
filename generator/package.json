@@ -1,0 +1,12 @@
+{
+  "name": "@aig/generator",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Templates, analyzers and generation engine for the AI Integration Generator platform",
+  "main": "src/index.js",
+  "dependencies": {
+    "archiver": "^7.0.1",
+    "yaml": "^2.5.0"
+  }
+}

@@ -1,0 +1,15 @@
+# Dependencies
+node_modules/
+.next/
+out/
+
+# Secrets - never commit your .env files
+.env
+.env.*.local
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

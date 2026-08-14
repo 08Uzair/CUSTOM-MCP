@@ -1,0 +1,23 @@
+{
+  "name": "{{PROJECT_SLUG}}-ai-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "AI chat backend for {{PROJECT_NAME}} - Groq + MCP tool calling",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.9.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "openai": "^4.77.0",
+    "zod": "^3.23.8"
+  },
+  "engines": {
+    "node": ">=18.17"
+  }
+}

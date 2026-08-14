@@ -1,0 +1,50 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-slate-950 text-slate-100 antialiased;
+  background-image:
+    radial-gradient(900px 420px at 50% -140px, rgb(99 102 241 / 0.14), transparent 70%),
+    radial-gradient(700px 380px at 95% 0%, rgb(139 92 246 / 0.08), transparent 70%);
+  background-repeat: no-repeat;
+  min-height: 100vh;
+}
+
+::selection {
+  @apply bg-indigo-500/40 text-white;
+}
+
+/* Thin scrollbars for the dev-tool feel */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(71 85 105 / 0.7) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  @apply rounded-full bg-slate-700;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Custom utilities */
+@layer utilities {
+  .card-surface {
+    @apply rounded-2xl border border-slate-800 bg-slate-900/70 shadow-xl shadow-black/30 backdrop-blur-sm;
+  }
+  .text-gradient {
+    @apply bg-gradient-to-r from-indigo-400 via-violet-400 to-fuchsia-400 bg-clip-text text-transparent;
+  }
+}

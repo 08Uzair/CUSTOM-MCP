@@ -1,0 +1,44 @@
+services:
+  mcp-server:
+    build: ./mcp-server
+    container_name: {{PROJECT_SLUG}}-mcp
+    restart: unless-stopped
+    environment:
+      MCP_SERVER_PORT: {{PORT_MCP_SERVER}}
+      TARGET_API_BASE_URL: {{API_BASE_URL}}
+      TARGET_API_AUTH_TYPE: {{API_AUTH_TYPE}}
+      # Fill these with your real credentials (or use a .env file at repo root).
+      TARGET_API_TOKEN: ${TARGET_API_TOKEN:-}
+      TARGET_API_API_KEY: ${TARGET_API_API_KEY:-}
+      TARGET_API_AUTH_HEADER_VALUE: ${TARGET_API_AUTH_HEADER_VALUE:-}
+      TARGET_API_BASIC_USERNAME: ${TARGET_API_BASIC_USERNAME:-}
+      TARGET_API_BASIC_PASSWORD: ${TARGET_API_BASIC_PASSWORD:-}
+    ports:
+      - "{{PORT_MCP_SERVER}}:{{PORT_MCP_SERVER}}"
+
+  ai-server:
+    build: ./ai-server
+    container_name: {{PROJECT_SLUG}}-ai
+    restart: unless-stopped
+    depends_on:
+      - mcp-server
+    environment:
+      AI_SERVER_PORT: {{PORT_AI_SERVER}}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GROQ_MODEL: {{AI_MODEL}}
+      MCP_SERVER_URL: http://mcp-server:{{PORT_MCP_SERVER}}/mcp
+      CORS_ORIGINS: http://localhost:{{PORT_AI_CLIENT}}
+    ports:
+      - "{{PORT_AI_SERVER}}:{{PORT_AI_SERVER}}"
+
+  ai-client:
+    build:
+      context: ./ai-client
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:{{PORT_AI_SERVER}}
+    container_name: {{PROJECT_SLUG}}-ui
+    restart: unless-stopped
+    depends_on:
+      - ai-server
+    ports:
+      - "{{PORT_AI_CLIENT}}:3000"
