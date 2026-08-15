@@ -1,6 +1,6 @@
 # AI Integration Generator
 
-A platform that scans any existing application/API and generates a **fully working, standalone AI integration project** — an MCP server, an AI chat server and a chat client — plus Docker configuration and documentation. Everything is downloaded as a ZIP and runs independently of this platform.
+A platform that scans any existing application/API and generates a **fully working, standalone AI integration project** — an MCP server, an AI chat server and a single drop-in chat component (`AiChat.jsx`) — plus Docker configuration and documentation. Everything is downloaded as a ZIP and runs independently of this platform.
 
 ---
 
@@ -14,7 +14,7 @@ A platform that scans any existing application/API and generates a **fully worki
 | Storage | MongoDB (`mongodb://localhost:27017/ai_integration_generator`) | local mongod |
 | Generated MCP Server | `@modelcontextprotocol/sdk` — Streamable HTTP transport, generic tool executor | generated `mcp-server/` |
 | Generated AI Server | Express + SSE + Groq (OpenAI-compatible streaming) | generated `ai-server/` |
-| Generated AI Client | Next.js 14 chat UI (SSE consumption, tool-call badges) | generated `ai-client/` |
+| Generated AI Chat | Self-contained `AiChat.jsx` (React 18+, zero deps, SSE consumption, tool-call badges) | generated `ai-chat/` |
 
 ## Ports
 
@@ -127,7 +127,7 @@ The pipeline is a multi-stage flow: wizard → API → target app → MongoDB �
 │ 5. GENERATOR            generator/src/services/generation.service │
 │    validate ──> analyzeEndpoints ──> generateProject               │
 │    buildProjectConfig() ──> buildTokens() ──> renderTemplate()     │
-│    (ai-server, mcp-server, ai-client, project-docs)                │
+│    (ai-server, mcp-server, ai-chat, project-docs)                   │
 │    writeEnvExamples() ──> zipDirectory() + sha256OfFile()          │
 └──────────────────────────────┬─────────────────────────────────────┘
                                │ acme-crm-complete.zip (+ per-service)
@@ -148,7 +148,7 @@ The pipeline is a multi-stage flow: wizard → API → target app → MongoDB �
 │      │        delete_user            ▲                             │
 │      │ resources: api://info        │                             │
 │      ▼                              │                             │
-│    TARGET API (real data) ──────────┘   ai-client (Next :3000)     │
+│    TARGET API (real data) ──────────┘   AiChat.jsx (in your app)    │
 │    http://localhost:3005/users/3                                   │
 └───────────────────────────────────────────────────────────────────┘
 ```
@@ -198,7 +198,7 @@ const result = await generator.generateProject(config);   // renders + zips
 ```js
 for (const service of SERVICE_TEMPLATES) {
   await renderTemplate(
-    path.join(templateRoot, service),          // ai-server / mcp-server / ai-client
+    path.join(templateRoot, service),          // ai-server / mcp-server / ai-chat
     path.join(projectDir, service),
     tokens                                     // { PROJECT_NAME, MCP_TOOLS_CONFIG, ... }
   );
@@ -246,9 +246,9 @@ if (!completion.toolCalls?.length) {
 <project>/
 ├── ai-server/         Express SSE chat API: Groq ──> MCP tools
 ├── mcp-server/        Streamable HTTP MCP server (tools + api://info resource)
-├── ai-client/         Next.js chat client
+├── ai-chat/           AiChat.jsx drop-in component + INSTALL.md (zero deps)
 ├── README.md          project documentation
-├── docker-compose.yml all three services containerized
+├── docker-compose.yml both servers containerized
 └── .env.example       one per service (secrets always empty)
 ```
 

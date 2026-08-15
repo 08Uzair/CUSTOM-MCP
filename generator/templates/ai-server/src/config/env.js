@@ -22,7 +22,8 @@ const envSchema = z.object({
   MCP_SERVER_URL: z.string().url().default('{{MCP_SERVER_URL}}'),
   // How long a single MCP connect attempt may take (milliseconds).
   MCP_CONNECT_TIMEOUT_MS: z.coerce.number().int().positive().default(10_000),
-  CORS_ORIGINS: z.string().default('http://localhost:{{PORT_AI_CLIENT}}'),
+  // The chat component is copied into YOUR app, so any origin may chat.
+  CORS_ORIGINS: z.string().default('*'),
   MAX_TOOL_ROUNDS: z.coerce.number().int().positive().default(5),
   // Only the last N messages (plus system prompt) are sent to the model -
   // keeps requests small, fast and under rate limits.

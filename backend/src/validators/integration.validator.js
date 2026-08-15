@@ -75,5 +75,5 @@ export const idParamSchema = z.object({
 });
 
 export const downloadQuerySchema = z.object({
-  package: z.enum(['complete', 'ai-server', 'mcp-server', 'ai-client']).optional(),
+  package: z.enum(['complete', 'ai-server', 'mcp-server', 'ai-chat', 'ai-client']).optional(),
 });

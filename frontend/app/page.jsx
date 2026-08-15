@@ -85,11 +85,11 @@ export default function LandingPage() {
             <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-indigo-300">
               <Bot size={14} aria-hidden="true" /> Generated architecture
             </p>
-            <pre className="mt-4 overflow-x-auto rounded-xl bg-slate-900 p-4 font-mono text-xs leading-relaxed text-slate-300">{`AI Client (:3000)
+            <pre className="mt-4 overflow-x-auto rounded-xl bg-slate-900 p-4 font-mono text-xs leading-relaxed text-slate-300">{`Your App + AiChat.jsx (drop-in component)
      │  SSE streaming
      ▼
 AI Server (:4000)
-     │  Chat Completions
+     │  Groq Responses API
      ▼
    Groq ──► MCP Server (:5000)
                  │  API Adapter

@@ -14,7 +14,7 @@ app.use(
   cors({
     origin: (origin, cb) => {
       const allowed = env.CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean);
-      if (!origin || allowed.length === 0 || allowed.includes(origin)) return cb(null, true);
+      if (!origin || allowed.length === 0 || allowed.includes('*') || allowed.includes(origin)) return cb(null, true);
       return cb(new Error('Origin not allowed'));
     },
   })

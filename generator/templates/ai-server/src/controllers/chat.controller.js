@@ -10,6 +10,10 @@ const chatSchema = z.object({
       content: z.string().nullable().optional(),
     })
   ).min(1).max(60),
+  // Optional current user id - sent by the AiChat component from localStorage.
+  // The chat service adds it to the model context and injects it into tool
+  // payloads whenever a tool schema requires a user id.
+  userId: z.string().max(128).optional(),
 });
 
 export const chatService = new ChatService();
@@ -43,7 +47,7 @@ export async function chat(req, res) {
   };
 
   try {
-    const result = await chatService.run({ messages: parsed.data.messages, emit });
+    const result = await chatService.run({ messages: parsed.data.messages, userId: parsed.data.userId, emit });
     emit('done', { ok: result.ok });
     res.end();
   } catch (err) {

@@ -13,7 +13,7 @@ const GENERATION_STEPS = [
   'Analyzing API',
   'Generating MCP Server',
   'Generating AI Server',
-  'Generating AI Client',
+  'Preparing AI Chat component',
   'Generating Documentation',
   'Creating ZIP',
 ];

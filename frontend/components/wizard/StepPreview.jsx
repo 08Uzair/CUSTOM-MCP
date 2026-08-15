@@ -40,7 +40,7 @@ export function StepPreview({ onAdvance, onBack }) {
               {[
                 { icon: Server, label: 'MCP Server', value: `:${result.ports.mcpServer}`, sub: `${result.tools.length} tools` },
                 { icon: Bot, label: 'AI Server', value: `:${result.ports.aiServer}`, sub: result.ai.model },
-                { icon: Boxes, label: 'AI Client', value: `:${result.ports.aiClient}`, sub: 'Next.js chat' },
+                { icon: Boxes, label: 'AI Chat', value: 'copy & drop', sub: 'AiChat.jsx (zero deps)' },
                 { icon: Cpu, label: 'Provider', value: result.ai.provider, sub: result.ai.model },
               ].map((stat) => (
                 <div key={stat.label} className="rounded-xl border border-slate-800 bg-slate-900/50 px-3 py-3">

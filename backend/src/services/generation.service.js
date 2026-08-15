@@ -11,7 +11,7 @@ export const JOB_STEPS = [
   { key: 'analyze', label: 'Analyzing API' },
   { key: 'mcp', label: 'Generating MCP Server' },
   { key: 'ai-server', label: 'Generating AI Server' },
-  { key: 'ai-client', label: 'Generating AI Client' },
+  { key: 'ai-chat', label: 'Preparing AI Chat component' },
   { key: 'docs', label: 'Generating Documentation' },
   { key: 'zip', label: 'Creating ZIP' },
 ];
@@ -176,7 +176,7 @@ export async function deleteIntegration(integrationId, integration) {
     project?.artifacts?.complete?.fileName,
     project?.artifacts?.parts?.aiServer?.fileName,
     project?.artifacts?.parts?.mcpServer?.fileName,
-    project?.artifacts?.parts?.aiClient?.fileName,
+    project?.artifacts?.parts?.aiChat?.fileName,
   ].filter(Boolean);
 
   await Promise.allSettled([

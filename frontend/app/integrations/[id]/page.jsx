@@ -139,7 +139,7 @@ export default function IntegrationDetailPage({ params }) {
                   { kind: 'complete', label: 'Complete project', size: project.artifacts?.complete?.sizeBytes, icon: FileArchive },
                   { kind: 'mcp-server', label: 'MCP Server', size: project.artifacts?.parts?.mcpServer?.sizeBytes, icon: Server },
                   { kind: 'ai-server', label: 'AI Server', size: project.artifacts?.parts?.aiServer?.sizeBytes, icon: Boxes },
-                  { kind: 'ai-client', label: 'AI Client', size: project.artifacts?.parts?.aiClient?.sizeBytes, icon: Download },
+                  { kind: 'ai-chat', label: 'AI Chat component', size: project.artifacts?.parts?.aiChat?.sizeBytes, icon: Download },
                 ].map((target) => (
                   <button
                     key={target.kind}

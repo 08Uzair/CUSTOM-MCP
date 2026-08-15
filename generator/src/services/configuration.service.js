@@ -7,7 +7,6 @@ import { buildToolRegistry } from '../adapters/api-adapter.js';
 export const FIXED_GROQ_MODEL = 'openai/gpt-oss-120b';
 
 export const PORTS = {
-  aiClient: 3000,
   aiServer: 4000,
   mcpServer: 5000,
 };

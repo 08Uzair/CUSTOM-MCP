@@ -4,7 +4,7 @@ import path from 'node:path';
 /**
  * Generates the documentation files for a project from templates:
  *   README.md (root), ai-server/README.md, mcp-server/README.md,
- *   ai-client/README.md, docker-compose.yml and .gitignore.
+ *   docker-compose.yml and .gitignore.
  *
  * The template READMEs contain {{TOKENS}}; the dynamic parts (tool tables,
  * auth hints) are produced here and injected before rendering.
@@ -27,6 +27,7 @@ export function documentationTokens(projectConfig) {
 
   return {
     PROJECT_NAME: projectName,
+    PROJECT_SLUG: projectConfig.projectSlug,
     APP_URL: appUrl || 'not provided',
     API_BASE_URL: apiBaseUrl,
     API_AUTH_TYPE: auth.type.toUpperCase(),
@@ -35,7 +36,6 @@ export function documentationTokens(projectConfig) {
     AI_MODEL: ai.model,
     MCP_TOOLS_COUNT: String(tools.length),
     MCP_TOOLS_TABLE: toolTable,
-    PORT_AI_CLIENT: ports.aiClient,
     PORT_AI_SERVER: ports.aiServer,
     PORT_MCP_SERVER: ports.mcpServer,
     TOOL_EXAMPLES: toolExamples(tools),

@@ -26,7 +26,7 @@ const generatedProjectSchema = new mongoose.Schema(
       parts: {
         aiServer: { fileName: String, sizeBytes: Number, sha256: String, createdAt: Date },
         mcpServer: { fileName: String, sizeBytes: Number, sha256: String, createdAt: Date },
-        aiClient: { fileName: String, sizeBytes: Number, sha256: String, createdAt: Date },
+        aiChat: { fileName: String, sizeBytes: Number, sha256: String, createdAt: Date },
       },
     },
   },

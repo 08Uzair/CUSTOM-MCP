@@ -5,19 +5,19 @@ Chat backend that connects the AI (Groq) to your application through the generat
 ## Architecture
 
 ```
-AI Client (browser, :3000)
+Your App (ai-chat/AiChat.jsx component)
         |
         | SSE chat stream
         v
-   AI Server (this service) :4000
+   AI Server (this service) :{{PORT_AI_SERVER}}
         |
-        | Chat Completions API
+        | Groq Responses API
         v
-        Groq (llama / groq models)
+        Groq (openai/gpt-oss-120b, fallback llama-3.3-70b-versatile)
         ^
         | MCP tools/call (Streamable HTTP)
         |
-   MCP Server (:5000) --> your API ({{API_BASE_URL}})
+   MCP Server (:{{PORT_MCP_SERVER}}) --> your API ({{API_BASE_URL}})
 ```
 
 The AI never calls your API directly - every data access happens through an MCP tool provided by the MCP server.
@@ -35,16 +35,25 @@ npm run dev             # or: npm start
 | `AI_SERVER_PORT` | Port (default `4000`) |
 | `GROQ_API_KEY` | **Required** - your Groq key from https://console.groq.com |
 | `GROQ_MODEL` | Model id, e.g. `{{AI_MODEL}}` |
+| `GROQ_MODEL_FALLBACK` | Used automatically when the primary model is rate-limited |
 | `MCP_SERVER_URL` | URL of the MCP server (default `http://localhost:5000/mcp`) |
-| `CORS_ORIGINS` | Comma-separated browser origins allowed to chat |
+| `CORS_ORIGINS` | Browser origins allowed to chat - `*` by default (the component lives in your app) |
 
 ## API
 
 **POST /api/chat** - streaming chat. Request:
 
 ```json
-{ "messages": [{ "role": "user", "content": "How many users are in the system?" }] }
+{
+  "messages": [{ "role": "user", "content": "How many users are in the system?" }],
+  "userId": "user-123"
+}
 ```
+
+`userId` is optional but recommended - the `AiChat` component reads it from
+`localStorage` automatically. The server adds it to the AI's context and
+**injects it into tool payloads** whenever a tool schema requires a user id
+(e.g. `userId`, `user_id`).
 
 Response is a Server-Sent Events stream: `status`, `tool_call`, `tool_result`, `delta`, `usage`, `done`, `error`.
 

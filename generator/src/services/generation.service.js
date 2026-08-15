@@ -10,7 +10,9 @@ import { zipDirectory, sha256OfFile } from '../zip/zip.service.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const TEMPLATES_DIR = path.resolve(__dirname, '..', '..', 'templates');
 
-const SERVICE_TEMPLATES = ['ai-server', 'mcp-server', 'ai-client'];
+const SERVICE_TEMPLATES = ['ai-server', 'mcp-server'];
+// Non-service templates: the drop-in chat component + install instructions.
+const CHAT_TEMPLATE = 'ai-chat';
 
 /**
  * The main generation pipeline:
@@ -32,10 +34,21 @@ export async function generateProject(config) {
 
   const templateRoot = path.join(TEMPLATES_DIR);
 
-  // 1. Render the three service templates.
+  // 1. Render the two service templates.
   for (const service of SERVICE_TEMPLATES) {
     await renderTemplate(path.join(templateRoot, service), path.join(projectDir, service), tokens);
   }
+
+  // 1b. Render the drop-in chat component (AiChat.jsx + INSTALL.md).
+  await renderTemplate(path.join(templateRoot, CHAT_TEMPLATE), path.join(projectDir, CHAT_TEMPLATE), tokens);
+
+  // 1c. The mcp-server README uses documentation tokens (tool table, auth
+  // hints) - re-render it with the full documentation token set.
+  await renderTokenizedFile(
+    path.join(projectDir, 'mcp-server', 'README.md'),
+    path.join(projectDir, 'mcp-server', 'README.md'),
+    documentationTokens(projectConfig)
+  );
 
   // 2. Render project-level files (README, docker-compose, .gitignore, run.ps1).
   const docsDir = path.join(templateRoot, 'project-docs');
@@ -49,13 +62,13 @@ export async function generateProject(config) {
   await renderTokenizedFile(path.join(docsDir, '.gitignore'), path.join(projectDir, '.gitignore'), tokens);
   await renderTokenizedFile(path.join(docsDir, 'run.ps1'), path.join(projectDir, 'run.ps1'), tokens);
 
-  // 3. VS Code multi-root workspace so all three services open in one window.
+  // 3. VS Code multi-root workspace so both services open in one window.
   await fs.writeFile(
     path.join(projectDir, `${projectConfig.projectSlug}.code-workspace`),
     `${JSON.stringify(
       {
         name: projectConfig.projectName,
-        folders: [{ path: 'mcp-server' }, { path: 'ai-server' }, { path: 'ai-client' }],
+        folders: [{ path: 'mcp-server' }, { path: 'ai-server' }, { path: 'ai-chat' }],
         settings: {},
       },
       null,
@@ -78,7 +91,7 @@ export async function generateProject(config) {
     services: {
       aiServer: path.join(projectDir, 'ai-server'),
       mcpServer: path.join(projectDir, 'mcp-server'),
-      aiClient: path.join(projectDir, 'ai-client'),
+      aiChat: path.join(projectDir, 'ai-chat'),
     },
     artifacts,
   };
@@ -106,8 +119,9 @@ async function writeEnvExamples(projectDir, config) {
     `# URL of the generated MCP server (talking locally or inside docker)`,
     `MCP_SERVER_URL=http://localhost:${ports.mcpServer}/mcp`,
     '',
-    `# Allowed browser origins for the AI client`,
-    `CORS_ORIGINS=http://localhost:${ports.aiClient}`,
+    `# Allowed browser origins for the chat component (it is copied into your app)`,
+    '# CORS_ORIGINS=* allows any origin - restrict it to your app URL if needed',
+    'CORS_ORIGINS=*',
     '',
     '# Tool-calling rounds and history window sent to the model',
     'MAX_TOOL_ROUNDS=5',
@@ -119,7 +133,7 @@ async function writeEnvExamples(projectDir, config) {
     `# Port the MCP server listens on`,
     `MCP_SERVER_PORT=${ports.mcpServer}`,
     '',
-    `# Your application API base URL - everything the MCP server calls starts from here`,
+    `# Your application API base URL (the URL/port you entered in step 1 of the wizard)`,
     `TARGET_API_BASE_URL=${config.apiBaseUrl}`,
     '',
     ...auth.env.lines,
@@ -128,15 +142,8 @@ async function writeEnvExamples(projectDir, config) {
     'TARGET_API_TIMEOUT_MS=10000',
   ].join('\n');
 
-  const aiClientEnv = [
-    '# AI Client configuration',
-    `# Where the AI server lives (browser context - use localhost when running locally)`,
-    `NEXT_PUBLIC_API_URL=http://localhost:${ports.aiServer}`,
-  ].join('\n');
-
   await fs.writeFile(path.join(projectDir, 'ai-server', '.env.example'), `${aiServerEnv}\n`, 'utf8');
   await fs.writeFile(path.join(projectDir, 'mcp-server', '.env.example'), `${mcpServerEnv}\n`, 'utf8');
-  await fs.writeFile(path.join(projectDir, 'ai-client', '.env.example'), `${aiClientEnv}\n`, 'utf8');
 }
 
 async function buildZips(projectDir, artifactsRoot, safeId, config) {
@@ -154,7 +161,7 @@ async function buildZips(projectDir, artifactsRoot, safeId, config) {
   const parts = {
     aiServer: await makeMetaFrom(path.join(projectDir, 'ai-server'), artifactsRoot, `${projectSlug}-ai-server.zip`),
     mcpServer: await makeMetaFrom(path.join(projectDir, 'mcp-server'), artifactsRoot, `${projectSlug}-mcp-server.zip`),
-    aiClient: await makeMetaFrom(path.join(projectDir, 'ai-client'), artifactsRoot, `${projectSlug}-ai-client.zip`),
+    aiChat: await makeMetaFrom(path.join(projectDir, 'ai-chat'), artifactsRoot, `${projectSlug}-ai-chat.zip`),
   };
 
   return { complete, parts };
@@ -177,7 +184,6 @@ function buildTokens(projectConfig) {
     API_AUTH_TYPE: projectConfig.auth.type,
     AI_PROVIDER: projectConfig.ai.provider,
     AI_MODEL: projectConfig.ai.model,
-    PORT_AI_CLIENT: projectConfig.ports.aiClient,
     PORT_AI_SERVER: projectConfig.ports.aiServer,
     PORT_MCP_SERVER: projectConfig.ports.mcpServer,
     MCP_SERVER_URL: projectConfig.mcp.serverUrl,

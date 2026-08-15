@@ -1,13 +1,15 @@
 <#
 .SYNOPSIS
     {{PROJECT_NAME}} - AI Integration Generator launcher.
-    Installs dependencies for every service and starts all three in ONE
+    Installs dependencies for every service and starts both servers in ONE
     VS Code terminal with live, labelled output.
 
 .SERVICES
     MCP Server  : http://localhost:{{PORT_MCP_SERVER}}/health
     AI Server   : http://localhost:{{PORT_AI_SERVER}}/api/health
-    AI Client   : http://localhost:{{PORT_AI_CLIENT}}
+
+    The chat UI is a single drop-in component (ai-chat/AiChat.jsx) that you
+    copy into your own application - see ai-chat/INSTALL.md.
 
 .USAGE
     .\run.ps1                 Install missing deps, then start everything
@@ -47,17 +49,10 @@ $Services = @(
         Args    = @("src/server.js")
         Url     = "http://localhost:{{PORT_AI_SERVER}}/api/health"
         Timeout = 60
-    },
-    @{
-        Name    = "AI CLIENT"
-        Folder  = "ai-client"
-        Args    = @("node_modules/next/dist/bin/next", "dev")
-        Url     = "http://localhost:{{PORT_AI_CLIENT}}"
-        Timeout = 120
     }
 )
 
-$Ports = @({{PORT_AI_CLIENT}}, {{PORT_AI_SERVER}}, {{PORT_MCP_SERVER}})
+$Ports = @({{PORT_AI_SERVER}}, {{PORT_MCP_SERVER}})
 
 # ============================================================
 # HELPERS
@@ -180,7 +175,7 @@ foreach ($service in $Services) {
 }
 
 # ============================================================
-# INSTALL: npm i for ai-client, ai-server, mcp-server
+# INSTALL: npm i for ai-server and mcp-server
 # ============================================================
 
 $needInstall = $Install
@@ -240,8 +235,8 @@ foreach ($service in $Services) {
     $folder = Join-Path $Root $service.Folder
     $args = @($service.Args)
 
-    # Development mode adds --watch to the two node services.
-    if ($Dev -and $service.Folder -ne "ai-client") {
+    # Development mode adds --watch so the servers restart on file change.
+    if ($Dev) {
         $args = @("--watch") + $args
     }
 

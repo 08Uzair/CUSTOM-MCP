@@ -65,7 +65,7 @@ export const status = asyncHandler(async (req, res) => {
   return ok(res, { integration, job, project }, 'Status retrieved');
 });
 
-/** GET /api/integrations/:id/download?package=complete|ai-server|mcp-server|ai-client */
+/** GET /api/integrations/:id/download?package=complete|ai-server|mcp-server|ai-chat */
 export const download = asyncHandler(async (req, res) => {
   const packageKey = req.query.package || 'complete';
   const artifact = await resolveArtifact(req.params.id, packageKey);

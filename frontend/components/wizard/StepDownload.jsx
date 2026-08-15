@@ -34,7 +34,7 @@ export function StepDownload({ onReset }) {
       complete: `${slug}-complete.zip`,
       'ai-server': `${slug}-ai-server.zip`,
       'mcp-server': `${slug}-mcp-server.zip`,
-      'ai-client': `${slug}-ai-client.zip`,
+      'ai-chat': `${slug}-ai-chat.zip`,
     })[kind] || `${slug}.zip`;
 
   const sizeOf = (kind) =>
@@ -46,7 +46,7 @@ export function StepDownload({ onReset }) {
     { kind: 'complete', icon: FileArchive, title: 'Complete project', sub: 'All services + docs + docker-compose', chip: 'from-indigo-500/25 to-indigo-500/5 text-indigo-300 ring-indigo-500/30' },
     { kind: 'mcp-server', icon: Server, title: 'MCP Server', sub: 'Tools for your API (port 5000)', chip: 'from-emerald-500/25 to-emerald-500/5 text-emerald-300 ring-emerald-500/30' },
     { kind: 'ai-server', icon: Package, title: 'AI Server', sub: 'Groq chat backend (port 4000)', chip: 'from-amber-500/25 to-amber-500/5 text-amber-300 ring-amber-500/30' },
-    { kind: 'ai-client', icon: Smartphone, title: 'AI Client', sub: 'Chat UI (port 3000)', chip: 'from-sky-500/25 to-sky-500/5 text-sky-300 ring-sky-500/30' },
+    { kind: 'ai-chat', icon: Smartphone, title: 'AI Chat component', sub: 'AiChat.jsx - drop into your app', chip: 'from-sky-500/25 to-sky-500/5 text-sky-300 ring-sky-500/30' },
   ];
 
   return (
@@ -83,9 +83,9 @@ export function StepDownload({ onReset }) {
             <Sparkles size={13} aria-hidden="true" /> What's inside
           </p>
           <ul className="mt-1.5 list-inside list-disc space-y-0.5 text-indigo-200/80">
-            <li>Full source code for all three services - plain JavaScript, fully commented.</li>
+            <li>Full source code for both servers plus the AiChat.jsx component - plain JavaScript, fully commented.</li>
             <li>docker-compose.yml - run everything with <code className="rounded-md bg-white/10 px-1 font-mono">docker compose up</code></li>
-            <li>Documentation: root README + one per service.</li>
+            <li>Documentation: root README + one per service + ai-chat/INSTALL.md.</li>
             <li>.env.example files - create your .env from them and fill in your real keys.</li>
             <li>Your API details are already wired in - extraction is done, no hardcoding anywhere.</li>
           </ul>

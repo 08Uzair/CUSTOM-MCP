@@ -49,8 +49,11 @@ export class ChatService {
     return this.mcp.connected;
   }
 
-  #systemPrompt() {
+  #systemPrompt(userId) {
     const toolNames = this.mcp.tools.map((t) => t.name).join(', ') || 'none available';
+    const userContext = userId
+      ? ` The current user's ID is "${userId}". When you call a tool that needs a user identifier, always pass this exact ID.`
+      : '';
     return {
       role: 'system',
       content:
@@ -58,11 +61,11 @@ export class ChatService {
         `You can inspect the application's API (${APP_META.apiBaseUrl}) through these MCP tools: ${toolNames}. ` +
         `When the user asks about the application's data, call the matching tool, wait for its result, ` +
         `then answer using the returned data. Never invent data - if a tool fails or is missing, say so. ` +
-        `Keep answers concise and technical.`,
+        `Keep answers concise and technical.` + userContext,
     };
   }
 
-  async run({ messages, emit }) {
+  async run({ messages, emit, userId }) {
     if (!messages?.length) throw new Error('No messages provided');
     if (!env.GROQ_API_KEY) {
       await emit({ type: 'error', message: 'GROQ_API_KEY is not configured. Set it in the ai-server/.env file.' });
@@ -75,7 +78,7 @@ export class ChatService {
 
     // Only the most recent messages go to the model - smaller payloads are
     // faster and far less likely to trip Groq's rate limits.
-    const history = [{ role: 'system', content: this.#systemPrompt().content }, ...trimHistory(messages, env.MAX_HISTORY_MESSAGES)];
+    const history = [{ role: 'system', content: this.#systemPrompt(userId).content }, ...trimHistory(messages, env.MAX_HISTORY_MESSAGES)];
     let current = history;
 
     // ---- Tool-calling loop (bounded) ----
@@ -108,7 +111,10 @@ export class ChatService {
         let executed;
         try {
           await emit({ type: 'tool_call', name: call.name, args: call.arguments });
-          executed = await this.mcp.callTool(call.name, call.arguments);
+          // If the tool's schema wants a user id and the model did not fill
+          // it in, inject the request's userId automatically - API routes
+          // that require it always receive it.
+          executed = await this.mcp.callTool(call.name, this.#withUserId(call.name, call.arguments, userId));
         } catch (err) {
           executed = { ok: false, raw: JSON.stringify({ error: err.message }) };
         }
@@ -157,6 +163,27 @@ export class ChatService {
   async listTools() {
     await this.ensureMcp();
     return this.mcp.tools;
+  }
+
+  /**
+   * Injects the current user id into tool arguments when the tool's input
+   * schema declares a user-identifier property (userId / user_id / ...) and
+   * the model did not provide it.
+   */
+  #withUserId(toolName, args, userId) {
+    if (!userId || !args) return args;
+    const tool = this.mcp.tools.find((t) => t.name === toolName);
+    const schema = tool?.inputSchema;
+    if (!schema?.properties) return args;
+
+    const userField = Object.keys(schema.properties).find((field) => /user/i.test(field) && /id/i.test(field));
+    if (!userField) return args;
+
+    const current = args[userField];
+    if (current === undefined || current === null || current === '') {
+      return { ...args, [userField]: userId };
+    }
+    return args;
   }
 }
 
