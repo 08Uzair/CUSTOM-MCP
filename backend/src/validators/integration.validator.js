@@ -18,12 +18,26 @@ export const aiSchema = z.object({
   model: z.string().trim().max(200).optional(),
 });
 
+const payloadFieldSchema = z.object({
+  name: z.string().trim().min(1).max(100),
+  type: z.enum(['string', 'number', 'boolean', 'object', 'array']).default('string'),
+  required: z.boolean().default(false),
+  description: z.string().trim().max(300).optional(),
+});
+
+const payloadSchema = z.object({
+  hasBody: z.boolean().optional(),
+  example: z.any().optional(),
+  fields: z.array(payloadFieldSchema).max(200).optional(),
+});
+
 const endpointSchema = z.object({
   method: z.string().regex(/^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)$/i),
   path: z.string().min(1).max(500),
   summary: z.string().max(300).optional(),
   params: z.array(z.any()).optional(),
   body: z.any().optional(),
+  payload: payloadSchema.optional(),
   source: z.enum(['openapi', 'manual']).optional(),
 });
 

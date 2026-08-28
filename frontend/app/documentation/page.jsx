@@ -583,6 +583,11 @@ function WorkflowSection() {
         '"Test connection" validates the URL, checks server + endpoint, detects JSON, hunts for OpenAPI/Swagger documents, and analyzes endpoints.',
     },
     {
+      name: 'Request payloads',
+      detail:
+        'Define the exact payload each endpoint expects: field names, types, required flags and an optional example JSON. The AI assistant uses this contract to build requests and to ask for missing fields instead of guessing.',
+    },
+    {
       name: 'Preview',
       detail:
         'Review the tool registry (the exact list of AI-callable tools), the ports each service uses, and the environment contract.',
@@ -601,7 +606,7 @@ function WorkflowSection() {
     <section className="card-surface animate-fade-in-up p-6">
       <SectionHeading>Generation workflow</SectionHeading>
       <p className="mt-3 text-sm text-slate-400">
-        The wizard has 7 steps. Here is what each one actually does behind the scenes:
+        The wizard has 8 steps. Here is what each one actually does behind the scenes:
       </p>
       <ol className="mt-4 space-y-3">
         {lines.map((s, idx) => (

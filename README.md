@@ -12,9 +12,9 @@ A platform that scans any existing application/API and generates a **fully worki
 | Generator | Node.js (ESM), `@modelcontextprotocol/sdk`, archiver, custom template engine (token rendering) | `generator/` |
 | Wizard UI | Next.js 14 (App Router), React 18, Tailwind CSS, lucide-react | `frontend/` |
 | Storage | MongoDB (`mongodb://localhost:27017/ai_integration_generator`) | local mongod |
-| Generated MCP Server | `@modelcontextprotocol/sdk` — Streamable HTTP transport, generic tool executor | generated `mcp-server/` |
+| Generated MCP Server | `@modelcontextprotocol/sdk` — Streamable HTTP transport, explicit per-tool `server.tool(...)` code | generated `mcp-server/` |
 | Generated AI Server | Express + SSE + Groq (OpenAI-compatible streaming) | generated `ai-server/` |
-| Generated AI Chat | Self-contained `AiChat.jsx` (React 18+, zero deps, SSE consumption, tool-call badges) | generated `ai-chat/` |
+| Generated AI Chat | Self-contained `AiChat.jsx` (React 18+, `react-markdown` + `lucide-react` + Tailwind, SSE consumption, tool-call badges) | generated `ai-chat/` |
 
 ## Ports
 
@@ -101,7 +101,8 @@ The pipeline is a multi-stage flow: wizard → API → target app → MongoDB �
 ┌───────────────────────────────────────────────────────────────────┐
 │ 1. WIZARD UI            frontend/            http://localhost:3000 │
 │    StepApplication ──> StepAuthentication ──> StepAI ──>          │
-│    StepDiscovery ──> StepPreview ──> StepGenerate ──> StepDownload│
+│    StepDiscovery ──> StepPayload ──> StepPreview ──> StepGenerate  │
+│    ──> StepDownload                                               │
 └──────────────────────────────┬────────────────────────────────────┘
                                │  user config: { appUrl, apiBaseUrl, auth, ai }
                                │  apiFetch('/api/integrations/validate', ...)
@@ -205,19 +206,24 @@ for (const service of SERVICE_TEMPLATES) {
 }
 ```
 
-**5. Generated MCP tool registry** (`generated <project>/mcp-server/src/config/tools.js`)
+**5. Generated MCP tool registration** (`generated <project>/mcp-server/src/tools/registrations.js`)
 
 ```js
-export const TOOLS = [
-  {
-    name: 'get_user',
-    description: 'Retrieves a user from the target API via GET /users/{id}.',
-    inputSchema: { type: 'object', properties: { id: { type: 'string', description: 'Value for the :id path parameter' } }, required: ['id'] },
-    request: { method: 'GET', path: '/users/{id}', pathParams: null, queryParams: [], body: false },
-  },
-  // ... create_user, update_user, delete_user, get_users
-];
+server.tool(
+  'get_user',
+  'Retrieves a user from the target API via GET /users/{id}.',
+  { id: z.string().describe('Value for the :id path parameter') },
+  async (args) => {
+    try {
+      return await call({ method: 'GET', path: '/users/{id}', body: false, queryParams: [] }, args);
+    } catch (e) {
+      return error(e.message);
+    }
+  }
+);
 ```
+
+Each endpoint becomes an explicit `server.tool(...)` block (zod schema + handler), the same style as a hand-written MCP server. The matching data registry lives in `src/config/tools.js` (used by the `api://info` resource and `/health`).
 
 **6. Generated tool execution** (`generated <project>/mcp-server/src/adapters/api-adapter.js`)
 
@@ -246,7 +252,7 @@ if (!completion.toolCalls?.length) {
 <project>/
 ├── ai-server/         Express SSE chat API: Groq ──> MCP tools
 ├── mcp-server/        Streamable HTTP MCP server (tools + api://info resource)
-├── ai-chat/           AiChat.jsx drop-in component + INSTALL.md (zero deps)
+├── ai-chat/           AiChat.jsx drop-in component + INSTALL.md (react-markdown + lucide-react)
 ├── README.md          project documentation
 ├── docker-compose.yml both servers containerized
 └── .env.example       one per service (secrets always empty)
@@ -262,7 +268,7 @@ PUT /users/:id      -> update_user
 DELETE /users/:id   -> delete_user
 ```
 
-The MCP server is a **generic executor over a pure-data tool registry** — tools are data, not code, so the generated server can never degrade into an unrestricted HTTP proxy.
+The MCP server registers every endpoint as **explicit `server.tool(...)` code** (zod schema + handler per tool) over a shared, env-driven API adapter — tools are real, hand-written style code, and the adapter is the only place that touches the network.
 
 ## Security
 
@@ -276,7 +282,7 @@ The MCP server is a **generic executor over a pure-data tool registry** — tool
 ```
 ├── backend/       Express REST API + job pipeline (validation, discovery, generation, zip, download)
 ├── generator/     Rendering engine: endpoint analysis → MCP tool definitions → template rendering → ZIP
-├── frontend/      Next.js wizard (7 steps) + dashboard/installed integrations
+├── frontend/      Next.js wizard (8 steps) + dashboard/installed integrations
 ├── generated/     ZIP artifacts (git-ignored)
 ├── run.ps1        one-command startup script
 └── docker-compose.yml

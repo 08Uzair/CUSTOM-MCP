@@ -4,14 +4,32 @@ Drop this chat into **any React app** (Next.js, Vite, CRA, Remix, ...) in two mi
 
 ## 1. Packages you have to install
 
-**`AiChat.jsx` itself needs ZERO extra packages** - it is plain React 18+ with
-its own scoped CSS and inline SVG icons. No UI library, no icon library, no
-Tailwind, nothing.
+**`AiChat.jsx`** is a single drop-in component, but it uses four small,
+standard packages for rendering and icons:
 
 ```
-Required:  react >= 18          (already in your app)
-Optional:  none
+npm install lucide-react react-markdown remark-gfm
 ```
+
+| Package          | Used for                                    |
+| ---------------- | ------------------------------------------- |
+| `lucide-react`   | icons (send, user, copy, wrench, ...)       |
+| `react-markdown` | rendering the AI's markdown answers (tables, code, lists, ...) |
+| `remark-gfm`     | GitHub-flavored markdown (tables, strikethrough) |
+
+**Tailwind CSS** is also required - the component is styled with Tailwind
+utility classes (the same look as the wizard UI). If your app does not use
+Tailwind yet:
+
+```bash
+# Next.js
+npm install -D tailwindcss postcss autoprefixer
+npx tailwindcss init -p
+# and add `content: ["./src/**/*.{js,jsx,ts,tsx}"]` to tailwind.config.js
+```
+
+Required versions: `react >= 18` (already in your app), `tailwindcss >= 3`,
+`react-markdown >= 9`, `remark-gfm >= 4`, `lucide-react >= 0.400`.
 
 The two servers bring their own dependencies (declared in their `package.json`,
 installed automatically by `run.ps1` or a plain `npm install`):
@@ -30,16 +48,17 @@ cp AiChat.jsx /path/to/your-app/src/components/AiChat.jsx
 
 ## 3. Render it where you want the AI agent
 
+The component **fills the whole viewport** (`fixed inset-0`), so render it as
+the full page or inside a full-screen route:
+
 ```jsx
 import AiChat from './components/AiChat';
 
-// Anywhere in your app - it fills its container, give it a height:
-<div style={{ height: '600px' }}>
-  <AiChat
-    apiUrl="http://localhost:{{PORT_AI_SERVER}}"
-    projectName="MyApp AI Assistant"
-  />
-</div>
+// Full-page chat:
+<AiChat
+  apiUrl="http://localhost:{{PORT_AI_SERVER}}"
+  projectName="MyApp AI Assistant"
+/>
 ```
 
 Props:
@@ -48,7 +67,7 @@ Props:
 | --- | --- | --- |
 | `apiUrl` | `http://localhost:{{PORT_AI_SERVER}}` | The ai-server base URL the browser talks to |
 | `projectName` | `AI Assistant` | Title in the header |
-| `subtitle` | `Powered by Groq...` | Small text under the title |
+| `subtitle` | `Ask anything about your data` | Small text under the title |
 | `userIdKey` | `userId` | localStorage key used for the user id |
 | `onUserIdChange` | - | Callback `(userId) => void` when the id changes |
 

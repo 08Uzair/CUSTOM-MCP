@@ -82,7 +82,12 @@ function buildUrl(request, args) {
     return `/${encodeURIComponent(String(value))}`;
   });
 
-  const url = new URL(pathWithParams || '/', ensureTrailingSlash(env.TARGET_API_BASE_URL));
+  // Join base + path explicitly: `new URL(path, base)` would reset the
+  // base's pathname whenever `path` starts with "/" (e.g. base
+  // http://host/api + /todos must stay http://host/api/todos).
+  const base = env.TARGET_API_BASE_URL.replace(/\/+$/, '');
+  const pathWithLeadingSlash = pathWithParams.startsWith('/') ? pathWithParams : `/${pathWithParams}`;
+  const url = new URL(`${base}${pathWithLeadingSlash}`);
 
   for (const qp of request.queryParams || []) {
     const value = args?.[qp.name];
@@ -93,13 +98,11 @@ function buildUrl(request, args) {
   return url.toString();
 }
 
-function ensureTrailingSlash(base) {
-  return base.endsWith('/') ? base : `${base}/`;
-}
-
 /** Authentication headers resolved from environment variables only. */
-function buildHeaders() {
+function buildHeaders(request, args) {
   const headers = { Accept: 'application/json' };
+  // Express-style parsers only read JSON bodies when the content type says so.
+  if (request?.body) headers['Content-Type'] = 'application/json';
   if (env.TARGET_API_BASIC_USERNAME || env.TARGET_API_BASIC_PASSWORD) {
     // Basic auth loses its meaning over plain HTTP - degrade loudly.
     headers.Authorization = `Basic ${Buffer.from(`${env.TARGET_API_BASIC_USERNAME}:${env.TARGET_API_BASIC_PASSWORD}`).toString('base64')}`;

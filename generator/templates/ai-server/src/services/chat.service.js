@@ -51,6 +51,9 @@ export class ChatService {
 
   #systemPrompt(userId) {
     const toolNames = this.mcp.tools.map((t) => t.name).join(', ') || 'none available';
+    // Replaced at generation time with the strict per-tool payload formats
+    // defined in the wizard (step 5) - or an empty string when none exist.
+    const payloadGuide = {{AI_TOOL_PAYLOAD_GUIDE}};
     const userContext = userId
       ? ` The current user's ID is "${userId}". When you call a tool that needs a user identifier, always pass this exact ID.`
       : '';
@@ -61,7 +64,8 @@ export class ChatService {
         `You can inspect the application's API (${APP_META.apiBaseUrl}) through these MCP tools: ${toolNames}. ` +
         `When the user asks about the application's data, call the matching tool, wait for its result, ` +
         `then answer using the returned data. Never invent data - if a tool fails or is missing, say so. ` +
-        `Keep answers concise and technical.` + userContext,
+        `Keep answers concise and technical.` + userContext +
+        (payloadGuide ? `\n\n${payloadGuide}` : ''),
     };
   }
 

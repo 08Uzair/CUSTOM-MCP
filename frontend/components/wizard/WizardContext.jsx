@@ -4,17 +4,26 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { apiFetch } from '../../lib/api';
 import { validateAuthStep } from '../../lib/validators';
 
-export const STEP_IDS = ['application', 'authentication', 'ai', 'discovery', 'preview', 'generate', 'download'];
+export const STEP_IDS = ['application', 'authentication', 'ai', 'discovery', 'payload', 'preview', 'generate', 'download'];
 
 export const STEPS = [
   { id: 'application', title: 'Application', subtitle: 'Your app & API details' },
   { id: 'authentication', title: 'Authentication', subtitle: 'How clients call your API' },
   { id: 'ai', title: 'AI Configuration', subtitle: 'Model provider settings' },
   { id: 'discovery', title: 'API Discovery', subtitle: 'Test & analyze your API' },
+  { id: 'payload', title: 'Request Payloads', subtitle: 'Define payloads per endpoint' },
   { id: 'preview', title: 'Preview', subtitle: 'Review the generated plan' },
   { id: 'generate', title: 'Generate', subtitle: 'Build your integration' },
   { id: 'download', title: 'Download', subtitle: 'Get your project files' },
 ];
+
+/** Methods that send a request body to the target API. */
+export const BODY_METHODS = ['POST', 'PUT', 'PATCH'];
+
+/** Stable key for one endpoint inside the payload map. */
+export function endpointKey(endpoint) {
+  return `${String(endpoint.method).toUpperCase()} ${endpoint.path}`;
+}
 
 export const DEFAULT_DRAFT = {
   name: '',
@@ -45,6 +54,7 @@ export function WizardProvider({ children }) {
 
   const [discovery, setDiscovery] = useState({ status: 'idle', result: null, error: null });
   const [endpoints, setEndpoints] = useState([]);
+  const [payloads, setPayloads] = useState({});
   const [preview, setPreview] = useState({ status: 'idle', result: null, error: null });
   const [generation, setGeneration] = useState({ status: 'idle', integrationId: null, job: null, project: null, error: null });
   const pollTimer = useRef(null);
@@ -99,6 +109,27 @@ export function WizardProvider({ children }) {
     }
   }, [draft.appUrl, draft.apiBaseUrl, transientAuth]);
 
+  /** Endpoints enriched with the user-defined payload for the preview/generate calls. */
+  const endpointsWithPayloads = useMemo(
+    () => endpoints.map((ep) => ({ ...ep, payload: payloads[endpointKey(ep)] || undefined })),
+    [endpoints, payloads]
+  );
+
+  /**
+   * True when every body-sending endpoint (POST/PUT/PATCH) has a payload
+   * definition: either "no body" or at least one field / an example JSON.
+   */
+  const payloadReady = useMemo(() => {
+    if (!endpoints.length) return false;
+    return endpoints.every((ep) => {
+      if (!BODY_METHODS.includes(ep.method.toUpperCase())) return true;
+      const p = payloads[endpointKey(ep)];
+      if (!p) return false;
+      if (p.hasBody === false) return true;
+      return Boolean((p.fields?.length ?? 0) > 0 || p.example !== undefined);
+    });
+  }, [endpoints, payloads]);
+
   const runPreview = useCallback(async () => {
     setPreview({ status: 'loading', result: null, error: null });
     try {
@@ -110,7 +141,7 @@ export function WizardProvider({ children }) {
           apiBaseUrl: draft.apiBaseUrl,
           auth: metaAuth(),
           ai: draft.ai,
-          endpoints,
+          endpoints: endpointsWithPayloads,
         },
         timeoutMs: 30_000,
       });
@@ -120,7 +151,7 @@ export function WizardProvider({ children }) {
       setPreview({ status: 'error', result: null, error: err.message });
       return null;
     }
-  }, [draft.name, draft.appUrl, draft.apiBaseUrl, draft.ai, metaAuth, endpoints]);
+  }, [draft.name, draft.appUrl, draft.apiBaseUrl, draft.ai, metaAuth, endpointsWithPayloads]);
 
   const startGeneration = useCallback(async () => {
     if (!preview.result) return;
@@ -133,7 +164,7 @@ export function WizardProvider({ children }) {
         auth: metaAuth(),
         ai: draft.ai,
         discovery: discovery.result,
-        endpoints,
+        endpoints: endpointsWithPayloads,
         tools: preview.result.tools,
       };
       const data = await apiFetch('/api/integrations/generate', { method: 'POST', body: payload, timeoutMs: 20_000 });
@@ -143,7 +174,7 @@ export function WizardProvider({ children }) {
       return null;
     }
     return generation.integrationId;
-  }, [preview.result, draft, discovery.result, endpoints, generation.integrationId]);
+  }, [preview.result, draft, discovery.result, endpointsWithPayloads, generation.integrationId]);
 
   // Poll the job while generation is running.
   useEffect(() => {
@@ -170,6 +201,7 @@ export function WizardProvider({ children }) {
     setStep(0);
     setDiscovery({ status: 'idle', result: null, error: null });
     setEndpoints([]);
+    setPayloads({});
     setPreview({ status: 'idle', result: null, error: null });
     setGeneration({ status: 'idle', integrationId: null, job: null, project: null, error: null });
   }, []);
@@ -182,12 +214,13 @@ export function WizardProvider({ children }) {
       step, goToStep,
       discovery, runDiscovery,
       endpoints, setEndpoints,
+      payloads, setPayloads, payloadReady,
       preview, runPreview,
       generation, startGeneration,
       reset,
       transientAuth, metaAuth,
     }),
-    [draft, updateDraft, updateAuth, updateAi, step, goToStep, discovery, runDiscovery, endpoints, preview, runPreview, generation, startGeneration, reset, transientAuth, metaAuth]
+    [draft, updateDraft, updateAuth, updateAi, step, goToStep, discovery, runDiscovery, endpoints, payloads, payloadReady, preview, runPreview, generation, startGeneration, reset, transientAuth, metaAuth]
   );
 
   return <WizardContext.Provider value={value}>{children}</WizardContext.Provider>;
@@ -201,7 +234,7 @@ export function useWizard() {
 
 /** Step gating rules - which steps the user may advance to. */
 export function stepAccess(wizard) {
-  const { draft, discovery, preview, generation, endpoints } = wizard;
+  const { draft, discovery, preview, generation, endpoints, payloadReady } = wizard;
   const validApp = draft.apiBaseUrl.trim().length > 0 && draft.name.trim().length > 1;
   const validAuth = validateAuthStep(draft.auth);
   const discovered = discovery.status === 'done' && (discovery.result?.endpoints?.length > 0 || endpoints.length > 0);
@@ -212,7 +245,8 @@ export function stepAccess(wizard) {
       validApp, // authentication
       validApp && validAuth, // ai
       validApp && validAuth, // discovery
-      discovered, // preview
+      discovered, // payload
+      discovered && payloadReady, // preview
       Boolean(preview.result), // generate
       generation.status === 'done', // download
     ],

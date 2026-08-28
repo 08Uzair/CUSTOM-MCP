@@ -2,66 +2,45 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { randomUUID } from 'node:crypto';
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import {
-  ListToolsRequestSchema,
-  CallToolRequestSchema,
-  ListResourcesRequestSchema,
-  ReadResourceRequestSchema,
-} from '@modelcontextprotocol/sdk/types.js';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { env, MCP } from './config/env.js';
-import { toolDefinitions } from './tools/index.js';
-import { executeTool } from './services/endpoint.service.js';
+import { TOOLS } from './config/tools.js';
+import { registerTools } from './tools/registrations.js';
 import { buildApiInfoResource } from './resources/api-info.js';
-import { toMcpError } from './utils/errors.js';
 
 dotenv.config();
 
 // ---------------------------------------------------------------- MCP server
-// The official SDK announces capabilities (tools + resources) and handles the
-// JSON-RPC protocol; we only register handlers below.
+// The high-level McpServer class registers every endpoint as explicit,
+// hand-written style tool code - see src/tools/registrations.js, where each
+// tool is declared with its own zod schema and handler. The api://info
+// resource below exposes static API metadata to MCP clients.
 //
-// NOTE: one `Server` instance is bound to exactly ONE transport/session, so
-// a fresh Server is created per MCP session and stored in the session map.
+// NOTE: one `McpServer` instance is bound to exactly ONE transport/session,
+// so a fresh server is created per MCP session and stored in the session map.
 function createMcpServer() {
-  const server = new Server(
+  const server = new McpServer(
     { name: MCP.name, version: MCP.version },
     { capabilities: { tools: {}, resources: {} } }
   );
 
-  server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: toolDefinitions.map((t) => ({
-      name: t.name,
-      description: t.description,
-      inputSchema: t.inputSchema,
-    })),
-  }));
+  // Per-endpoint tool registrations (generated code).
+  registerTools(server);
 
-  server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    try {
-      return await executeTool(request.params.name, request.params.arguments);
-    } catch (error) {
-      return toMcpError(error);
+  // Static resource: API overview (base URL, auth type, tool list).
+  server.registerResource(
+    'API Information',
+    'api://info',
+    {
+      description: 'Overview of the {{PROJECT_NAME}} API connected to this MCP server',
+      mimeType: 'application/json',
+    },
+    async (uri) => {
+      const resource = buildApiInfoResource();
+      return { contents: [{ uri: uri.href, mimeType: resource.mimeType, text: JSON.stringify(resource.content, null, 2) }] };
     }
-  });
-
-  server.setRequestHandler(ListResourcesRequestSchema, async () => {
-    const resource = buildApiInfoResource();
-    return {
-      resources: [
-        { uri: resource.uri, name: resource.name, description: resource.description, mimeType: resource.mimeType },
-      ],
-    };
-  });
-
-  server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
-    if (request.params.uri !== 'api://info') {
-      return { contents: [] };
-    }
-    const resource = buildApiInfoResource();
-    return { contents: [{ uri: resource.uri, mimeType: resource.mimeType, text: JSON.stringify(resource.content, null, 2) }] };
-  });
+  );
 
   return server;
 }
@@ -138,11 +117,11 @@ setInterval(() => {
 }, 60 * 60 * 1000).unref();
 
 app.get('/health', (_req, res) => {
-  res.json({ success: true, data: { status: 'ok', tools: toolDefinitions.length, transport: 'streamable-http' } });
+  res.json({ success: true, data: { status: 'ok', tools: TOOLS.length, transport: 'streamable-http' } });
 });
 
 app.listen(env.MCP_SERVER_PORT, () => {
   console.log(`[mcp-server] ${MCP.name} listening on http://localhost:${env.MCP_SERVER_PORT}`);
-  console.log(`[mcp-server] ${toolDefinitions.length} tool(s) registered for ${env.TARGET_API_BASE_URL}`);
+  console.log(`[mcp-server] ${TOOLS.length} tool(s) registered for ${env.TARGET_API_BASE_URL}`);
   console.log(`[mcp-server] MCP endpoint: POST http://localhost:${env.MCP_SERVER_PORT}/mcp`);
 });

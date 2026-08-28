@@ -16,7 +16,7 @@ MCP Client (e.g. AI Server)
    {{PROJECT_NAME}} API : {{API_BASE_URL}}
 ```
 
-Every tool funnels through the **API Adapter** (`src/adapters/api-adapter.js`): base URL, authentication, headers, query parameters, request bodies, timeouts and error handling all live there and are configured exclusively through environment variables.
+Every endpoint is registered as explicit, hand-written style tool code in `src/tools/registrations.js` (one `server.tool(...)` block per tool). All of them funnel through the **API Adapter** (`src/adapters/api-adapter.js`): base URL, authentication, headers, query parameters, request bodies, timeouts and error handling all live there and are configured exclusively through environment variables.
 
 ## Available tools ({{MCP_TOOLS_COUNT}})
 
@@ -71,7 +71,7 @@ curl -X POST http://localhost:5000/mcp \
 
 ## Customizing tools
 
-Open `src/config/tools.js` - it is a plain data registry. Add or change a tool by editing its entry (name, description, inputSchema, request). The executor (`src/services/endpoint.service.js`) needs no changes.
+Open `src/tools/registrations.js` - every endpoint is declared there as its own `server.tool(...)` block (zod schema + handler), exactly like a hand-written MCP server. Add or change a tool by editing its block; the matching entry in `src/config/tools.js` (data registry used by the `api://info` resource and `/health`) should be kept in sync.
 
 ## Troubleshooting
 

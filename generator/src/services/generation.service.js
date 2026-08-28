@@ -5,6 +5,7 @@ import { renderTemplate } from '../utils/template-engine.js';
 import { renderTokenizedFile } from './render.service.js';
 import { buildProjectConfig } from './configuration.service.js';
 import { documentationTokens } from './documentation.service.js';
+import { buildToolsRegistrationCode } from './tool-code.service.js';
 import { zipDirectory, sha256OfFile } from '../zip/zip.service.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -188,7 +189,32 @@ function buildTokens(projectConfig) {
     PORT_MCP_SERVER: projectConfig.ports.mcpServer,
     MCP_SERVER_URL: projectConfig.mcp.serverUrl,
     MCP_TOOLS_CONFIG: JSON.stringify(projectConfig.tools, null, 2),
+    // Explicit per-tool code for the generated mcp-server: one server.tool(...)
+    // block per endpoint (zod schema + handler), same style as a hand-written
+    // MCP server - see templates/mcp-server/src/tools/registrations.js.
+    MCP_TOOLS_CODE: buildToolsRegistrationCode(projectConfig.tools),
+    // JSON.stringify produces a valid single-line JS string literal, so the
+    // multi-line payload guide can never break the generated ai-server code.
+    AI_TOOL_PAYLOAD_GUIDE: JSON.stringify(buildToolPayloadGuide(projectConfig.tools)),
   };
+}
+
+/**
+ * Renders the strict per-tool payload rules that the generated ai-server
+ * injects into its system prompt - the AI then knows the exact payload each
+ * endpoint needs (same idea as a typed "actions" contract).
+ */
+export function buildToolPayloadGuide(tools = []) {
+  const lines = tools.filter((t) => t.payloadGuide).map((t) => `- ${t.name}: ${t.payloadGuide}`);
+  if (!lines.length) return '';
+  return (
+    'STRICT PAYLOAD RULES:\n' +
+    '- When you call a tool, send EXACTLY the payload format listed below - same field names, same types, no extra fields.\n' +
+    '- Never invent or guess a required value: if the user did not provide it, ask them for it before calling the tool.\n' +
+    '- If the API rejects a payload, read the error, fix the payload and retry once before giving up.\n' +
+    '- If a tool call still fails, tell the user what went wrong and what they can do to fix it.\n\n' +
+    `Tool payload formats:\n${lines.join('\n')}`
+  );
 }
 
 /** Deletes artifact folders older than `ttlHours`. Returns count removed. */

@@ -9,7 +9,7 @@ import { Card } from '../ui/Card';
 import { useWizard } from './WizardContext';
 import { formatBytes } from '../../lib/validators';
 
-/** Step 7 - download the complete project or individual services. */
+/** Step 8 - download the complete project or individual services. */
 export function StepDownload({ onReset }) {
   const { generation, draft } = useWizard();
   const [downloading, setDownloading] = useState(null);

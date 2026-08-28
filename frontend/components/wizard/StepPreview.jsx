@@ -6,7 +6,7 @@ import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { useWizard } from './WizardContext';
 
-/** Step 5 - review the complete plan before generating. */
+/** Step 6 - review the complete plan before generating. */
 export function StepPreview({ onAdvance, onBack }) {
   const { preview, runPreview, endpoints } = useWizard();
   const { status, result, error } = preview;
@@ -40,7 +40,7 @@ export function StepPreview({ onAdvance, onBack }) {
               {[
                 { icon: Server, label: 'MCP Server', value: `:${result.ports.mcpServer}`, sub: `${result.tools.length} tools` },
                 { icon: Bot, label: 'AI Server', value: `:${result.ports.aiServer}`, sub: result.ai.model },
-                { icon: Boxes, label: 'AI Chat', value: 'copy & drop', sub: 'AiChat.jsx (zero deps)' },
+                { icon: Boxes, label: 'AI Chat', value: 'copy & drop', sub: 'AiChat.jsx (react-markdown)' },
                 { icon: Cpu, label: 'Provider', value: result.ai.provider, sub: result.ai.model },
               ].map((stat) => (
                 <div key={stat.label} className="rounded-xl border border-slate-800 bg-slate-900/50 px-3 py-3">

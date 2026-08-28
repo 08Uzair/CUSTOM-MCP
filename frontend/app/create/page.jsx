@@ -2,22 +2,26 @@
 
 import { ChevronLeft, ChevronRight, Zap } from 'lucide-react';
 import Link from 'next/link';
-import { WizardProvider, useWizard } from '@/components/wizard/WizardContext';
+import { WizardProvider, useWizard, stepAccess, STEP_IDS } from '@/components/wizard/WizardContext';
 import { WizardStepper } from '@/components/wizard/WizardStepper';
 import { StepApplication } from '@/components/wizard/StepApplication';
 import { StepAuthentication } from '@/components/wizard/StepAuthentication';
 import { StepAI } from '@/components/wizard/StepAI';
 import { StepDiscovery } from '@/components/wizard/StepDiscovery';
+import { StepPayload } from '@/components/wizard/StepPayload';
 import { StepPreview } from '@/components/wizard/StepPreview';
 import { StepGenerate } from '@/components/wizard/StepGenerate';
 import { StepDownload } from '@/components/wizard/StepDownload';
 
-const STEPS_COMPONENTS = [StepApplication, StepAuthentication, StepAI, StepDiscovery, StepPreview, StepGenerate, StepDownload];
+const STEPS_COMPONENTS = [StepApplication, StepAuthentication, StepAI, StepDiscovery, StepPayload, StepPreview, StepGenerate, StepDownload];
 
 function WizardBody() {
   const wizard = useWizard();
   const { step, goToStep, reset } = wizard;
+  const { canEnter } = stepAccess(wizard);
   const ActiveStep = STEPS_COMPONENTS[step];
+  const lastStep = STEP_IDS.length - 1;
+  const nextLocked = step < lastStep && !canEnter[step + 1];
 
   return (
     <div className="min-h-screen">
@@ -54,13 +58,13 @@ function WizardBody() {
         </div>
         <main className="pb-16">
           <ActiveStep
-            onAdvance={() => step < 6 && goToStep(step + 1)}
+            onAdvance={() => step < lastStep && goToStep(step + 1)}
             onBack={() => goToStep(step - 1)}
-            onComplete={() => goToStep(6)}
+            onComplete={() => goToStep(lastStep)}
             onReset={reset}
           />
         </main>
-        {step < 6 && (
+        {!nextLocked && step < lastStep && (
           <div className="pb-10 text-center">
             <button
               type="button"

@@ -18,7 +18,7 @@ const GENERATION_STEPS = [
   'Creating ZIP',
 ];
 
-/** Step 6 - runs the generation job with live progress tracking. */
+/** Step 7 - runs the generation job with live progress tracking. */
 export function StepGenerate({ onComplete }) {
   const { generation, startGeneration } = useWizard();
 

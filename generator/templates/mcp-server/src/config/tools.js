@@ -1,12 +1,10 @@
 /**
- * GENERATED - MCP tool registry for {{PROJECT_NAME}}.
+ * GENERATED - MCP tool data registry for {{PROJECT_NAME}}.
  *
- * Each entry is pure data describing ONE tool:
- *   - name / description for the AI to understand
- *   - inputSchema (JSON Schema) for argument validation
- *   - request: how to call the target API through the adapter
- *
- * The executor in services/endpoint.service.js stays generic - adding a tool
- * never requires writing code.
+ * Pure data describing every tool (name, description, inputSchema and the
+ * target request). The actual tool registrations live as explicit code in
+ * src/tools/registrations.js - each endpoint is one server.tool(...) block.
+ * This registry mirrors those tools and feeds the api://info resource, the
+ * /health endpoint and this project's documentation.
  */
 export const TOOLS = {{MCP_TOOLS_CONFIG}};
